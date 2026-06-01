@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   applyGameResult,
+  allTrainingIds,
   createEmptySave,
   getDailyTrainingIds,
   getUnlockedTrainingIds,
 } from "../../src/core/progress";
 
 describe("daily progress and save semantics", () => {
+  it("prioritizes color conflict as the first recommended and listed training", () => {
+    expect(getDailyTrainingIds("2026-05-29")[0]).toBe("color-conflict");
+    expect(allTrainingIds[0]).toBe("color-conflict");
+  });
+
   it("separates daily completion from free training results", () => {
     const save = createEmptySave("2026-05-29");
     const afterFree = applyGameResult(save, {
@@ -70,4 +76,3 @@ describe("daily progress and save semantics", () => {
     );
   });
 });
-

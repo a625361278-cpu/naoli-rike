@@ -8,6 +8,7 @@ export interface SessionSummary {
   trainingId: TrainingId;
   startedAt: number;
   endedAt: number;
+  timeLimitMs?: number;
   correct: number;
   wrong: number;
   maxCombo: number;
@@ -18,16 +19,34 @@ export function buildResultFromSession(session: SessionSummary): GameResult {
   if (!Number.isFinite(durationMs) || durationMs <= 0) {
     throw new Error(`Invalid session duration: ${durationMs}`);
   }
+  if (session.timeLimitMs !== undefined && (!Number.isFinite(session.timeLimitMs) || session.timeLimitMs <= 0)) {
+    throw new Error(`Invalid time limit: ${String(session.timeLimitMs)}`);
+  }
   if (session.correct < 0 || session.wrong < 0 || session.maxCombo < 0) {
     throw new Error("Invalid negative session value");
   }
 
   const attempts = session.correct + session.wrong;
   const accuracy = attempts === 0 ? 0 : session.correct / attempts;
-  const speedBonus = Math.max(0, 1 - durationMs / 120_000);
-  const comboBonus = Math.min(session.maxCombo * 12, 160);
-  const score = Math.round(session.correct * 80 + accuracy * 300 + speedBonus * 240 + comboBonus - session.wrong * 45);
   const dimensions = emptyDimensions();
+  if (attempts === 0) {
+    return {
+      date: session.date,
+      mode: session.mode,
+      trainingId: session.trainingId,
+      score: 0,
+      correct: session.correct,
+      wrong: session.wrong,
+      durationMs,
+      maxCombo: session.maxCombo,
+      dimensions,
+    };
+  }
+  const timeLimitMs = session.timeLimitMs ?? 120_000;
+  const remainingRatio = Math.max(0, Math.min(1, (timeLimitMs - durationMs) / timeLimitMs));
+  const speedBonus = Math.round(remainingRatio * 520);
+  const comboBonus = Math.min(session.maxCombo * 12, 160);
+  const score = Math.round(session.correct * 80 + accuracy * 300 + speedBonus + comboBonus - session.wrong * 45);
   const activeDimensions = trainingDimensions[session.trainingId];
   const baseValue = Math.max(1, Math.round((score / 100) * accuracy));
 
@@ -62,4 +81,3 @@ function spreadSupportDimensions(dimensions: Record<DimensionKey, number>, activ
     }
   }
 }
-

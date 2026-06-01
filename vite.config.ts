@@ -1,6 +1,7 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  publicDir: "assets",
   server: {
     host: "0.0.0.0",
     port: 5173,

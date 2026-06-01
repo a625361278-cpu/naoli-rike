@@ -24,17 +24,22 @@ export interface DayRecord {
 }
 
 export interface SaveData {
-  schemaVersion: 1;
+  schemaVersion: 2;
   createdAt: string;
   days: Record<string, DayRecord>;
   bestByTraining: Partial<Record<TrainingId, GameResult>>;
   completedDates: string[];
   currentStreak: number;
+  settings: SaveSettings;
+}
+
+export interface SaveSettings {
+  soundEnabled: boolean;
 }
 
 export const allTrainingIds: TrainingId[] = [
-  "quick-math",
   "color-conflict",
+  "quick-math",
   "instant-memory",
   "flow-count",
   "chain-calc",
@@ -66,23 +71,24 @@ export function emptyDimensions(): Dimensions {
 export function createEmptySave(today: string): SaveData {
   assertDate(today, "today");
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     createdAt: today,
     days: {},
     bestByTraining: {},
     completedDates: [],
     currentStreak: 0,
+    settings: { soundEnabled: true },
   };
 }
 
 export function getDailyTrainingIds(_date: string): TrainingId[] {
-  return ["quick-math", "color-conflict", "instant-memory"];
+  return ["color-conflict", "quick-math", "instant-memory"];
 }
 
 export function getUnlockedTrainingIds(save: SaveData): TrainingId[] {
   validateSaveShape(save);
   const completedCount = save.completedDates.length;
-  const unlocked: TrainingId[] = ["quick-math", "color-conflict", "instant-memory"];
+  const unlocked: TrainingId[] = ["color-conflict", "quick-math", "instant-memory"];
   if (completedCount >= 1) {
     unlocked.push("flow-count");
   }
@@ -204,10 +210,13 @@ function validateResult(result: GameResult): void {
 }
 
 function validateSaveShape(save: SaveData): void {
-  if (save.schemaVersion !== 1) {
+  if (save.schemaVersion !== 2) {
     throw new Error(`Unsupported save schema version: ${save.schemaVersion}`);
   }
   assertDate(save.createdAt, "save createdAt");
+  if (!save.settings || typeof save.settings.soundEnabled !== "boolean") {
+    throw new Error("Invalid save settings");
+  }
   for (const date of save.completedDates) {
     assertDate(date, "completed date");
   }
